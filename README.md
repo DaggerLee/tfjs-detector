@@ -1,38 +1,33 @@
-# .
+# 🎯 Real-Time Object Detector
 
-This template should help get you started developing with Vue 3 in Vite.
+A browser-based real-time object detection app powered by TensorFlow.js — no server required.
 
-## Recommended IDE Setup
+**[Live Demo →](https://daggerlee.github.io/tfjs-detector/)**
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Features
+- 📷 Multi-camera support — switch between available cameras in real time
+- 🧠 Multi-model comparison — toggle between COCO-SSD and MobileNet
+- 🎚️ Adjustable confidence threshold — filter detections by confidence level
+- ⚡ Real-time performance stats — FPS counter and per-frame inference time (ms)
+- 🟩 Bounding box overlay — live annotations drawn on canvas
 
-## Recommended Browser Setup
+## Tech Stack
+- **Frontend**: Vue 3, Vue Router
+- **ML**: TensorFlow.js, COCO-SSD, MobileNet
+- **Deployment**: GitHub Pages
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## Performance
+- ~45 ms/frame inference on modern laptops (COCO-SSD)
+- Zero server dependency — all inference runs client-side in the browser
 
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+## Run Locally
+```bash
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
+Open http://localhost:5173
 
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
+## Background
+This project extends my work at Google Maps, where I ported a server-side R-CNN 
+road sign detection pipeline to TensorFlow.js for a mobile web feature. This demo 
+applies the same client-side inference approach to real-time multi-model object detection.
