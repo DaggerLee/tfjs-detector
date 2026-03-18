@@ -1,11 +1,11 @@
 import { ref, shallowRef } from 'vue'
 import * as cocoSsd from '@tensorflow-models/coco-ssd'
-import * as mobilenet from '@tensorflow-models/mobilenet'
+import * as blazeface from '@tensorflow-models/blazeface'
 import '@tensorflow/tfjs'
 
 export const MODELS = {
   'COCO-SSD': { label: 'COCO-SSD (Object Detection)', type: 'detection' },
-  'MobileNet': { label: 'MobileNet (Classification)', type: 'classification' }
+  'BlazeFace': { label: 'BlazeFace (Face Detection)', type: 'face' }
 }
 
 export function useDetector() {
@@ -23,8 +23,8 @@ export function useDetector() {
     try {
       if (name === 'COCO-SSD') {
         model.value = await cocoSsd.load()
-      } else if (name === 'MobileNet') {
-        model.value = await mobilenet.load()
+      } else if (name === 'BlazeFace') {
+        model.value = await blazeface.load()
       }
     } catch (e) {
       loadError.value = 'Failed to load model: ' + e.message
@@ -43,15 +43,26 @@ export function useDetector() {
           score: p.score,
           bbox: p.bbox
         }))
-      } else if (modelName.value === 'MobileNet') {
-        const preds = await model.value.classify(videoEl)
-        return preds.filter(p => p.probability >= confidence).map(p => ({
-          label: p.className,
-          score: p.probability,
-          bbox: null
-        }))
+      } else if (modelName.value === 'BlazeFace') {
+        const preds = await model.value.estimateFaces(videoEl, false)
+        return preds
+          .filter(p => {
+            const prob = Array.isArray(p.probability) ? p.probability[0] : p.probability
+            return prob >= confidence
+          })
+          .map(p => {
+            const prob = Array.isArray(p.probability) ? p.probability[0] : p.probability
+            const [x1, y1] = p.topLeft
+            const [x2, y2] = p.bottomRight
+            return {
+              label: 'face',
+              score: prob,
+              bbox: [x1, y1, x2 - x1, y2 - y1],
+              landmarks: p.landmarks
+            }
+          })
       }
-    } catch (e) {
+    } catch {
       return []
     }
     return []

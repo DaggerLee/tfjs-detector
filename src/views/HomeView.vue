@@ -1,15 +1,14 @@
 <template>
   <div class="app">
-    <!-- 顶部标题栏 -->
     <header>
       <h1>🎯 Real-Time Object Detector</h1>
       <span class="subtitle">Powered by TensorFlow.js</span>
+      <RouterLink to="/compare" class="compare-btn">⚡ Compare Models</RouterLink>
     </header>
 
     <main>
       <!-- 控制面板 -->
       <div class="controls card">
-        <!-- 摄像头选择 -->
         <div class="control-group">
           <label>📷 Camera</label>
           <select v-model="selectedDeviceId" @change="restart">
@@ -19,7 +18,6 @@
           </select>
         </div>
 
-        <!-- 模型选择 -->
         <div class="control-group">
           <label>🧠 Model</label>
           <select v-model="currentModel" @change="onModelChange">
@@ -27,7 +25,6 @@
           </select>
         </div>
 
-        <!-- 置信度调节 -->
         <div class="control-group">
           <label>🎚️ Confidence: {{ Math.round(confidence * 100) }}%</label>
           <input type="range" min="0.1" max="0.99" step="0.01" v-model.number="confidence" />
@@ -43,14 +40,19 @@
       <div class="video-container card">
         <video ref="videoEl" class="video" autoplay muted playsinline />
         <canvas ref="canvasEl" class="canvas" />
-
-        <!-- 实时统计 -->
         <div class="stats-overlay">
           <span>⚡ {{ fps }} FPS</span>
           <span>🔍 {{ detections.length }} objects</span>
           <span>⏱️ {{ inferenceTime }}ms</span>
         </div>
       </div>
+
+      <!-- 延迟折线图 -->
+      <LatencyChart
+        ref="chartRef"
+        title="Inference Latency (ms) — last 30 frames"
+        :series="[{ label: currentModel, color: '#00ff88' }]"
+      />
 
       <!-- 检测结果列表 -->
       <div class="results card" v-if="detections.length > 0">
@@ -68,15 +70,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useCamera } from '../composables/useCamera'
 import { useDetector, MODELS } from '../composables/useDetector'
+import LatencyChart from '../components/LatencyChart.vue'
 
 const { devices, selectedDeviceId, error: cameraError, getCameras, startCamera, stopCamera } = useCamera()
 const { isLoading, loadError, loadModel, detect } = useDetector()
 
 const videoEl = ref(null)
 const canvasEl = ref(null)
+const chartRef = ref(null)
 const currentModel = ref('COCO-SSD')
 const confidence = ref(0.5)
 const detections = ref([])
@@ -105,16 +110,28 @@ function drawBoxes(preds) {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   preds.forEach(p => {
-    if (!p.bbox) return
-    const [x, y, w, h] = p.bbox
-    ctx.strokeStyle = '#00ff88'
-    ctx.lineWidth = 3
-    ctx.strokeRect(x, y, w, h)
-    ctx.fillStyle = '#00ff88'
-    ctx.font = 'bold 16px Arial'
-    ctx.fillRect(x, y - 24, ctx.measureText(`${p.label} ${Math.round(p.score * 100)}%`).width + 10, 24)
-    ctx.fillStyle = '#000'
-    ctx.fillText(`${p.label} ${Math.round(p.score * 100)}%`, x + 4, y - 6)
+    if (p.bbox) {
+      const [x, y, w, h] = p.bbox
+      ctx.strokeStyle = '#00ff88'
+      ctx.lineWidth = 3
+      ctx.strokeRect(x, y, w, h)
+      ctx.fillStyle = '#00ff88'
+      ctx.font = 'bold 16px Arial'
+      const text = `${p.label} ${Math.round(p.score * 100)}%`
+      ctx.fillRect(x, y - 24, ctx.measureText(text).width + 10, 24)
+      ctx.fillStyle = '#000'
+      ctx.fillText(text, x + 4, y - 6)
+    }
+
+    // BlazeFace 面部关键点
+    if (p.landmarks) {
+      p.landmarks.forEach(([lx, ly]) => {
+        ctx.beginPath()
+        ctx.arc(lx, ly, 3, 0, Math.PI * 2)
+        ctx.fillStyle = '#ff6b6b'
+        ctx.fill()
+      })
+    }
   })
 }
 
@@ -129,9 +146,11 @@ async function loop(timestamp) {
   if (videoEl.value && videoEl.value.readyState === 4) {
     const t0 = performance.now()
     const preds = await detect(videoEl.value, confidence.value)
-    inferenceTime.value = Math.round(performance.now() - t0)
+    const ms = Math.round(performance.now() - t0)
+    inferenceTime.value = ms
     detections.value = preds
     drawBoxes(preds)
+    chartRef.value?.addPoints([ms])
   }
 
   animFrame = requestAnimationFrame(loop)
@@ -154,7 +173,9 @@ onUnmounted(() => {
 .app { min-height: 100vh; background: #0f0f0f; color: #eee; font-family: 'Segoe UI', sans-serif; }
 header { padding: 20px 40px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 16px; }
 header h1 { font-size: 22px; margin: 0; }
-.subtitle { color: #888; font-size: 14px; }
+.subtitle { color: #888; font-size: 14px; flex: 1; }
+.compare-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid #00ff88; color: #00ff88; text-decoration: none; font-size: 13px; transition: background 0.2s; }
+.compare-btn:hover { background: #00ff8822; }
 main { max-width: 900px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .card { background: #1a1a1a; border-radius: 12px; padding: 20px; border: 1px solid #2a2a2a; }
 .controls { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; }
