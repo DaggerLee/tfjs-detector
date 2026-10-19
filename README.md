@@ -37,9 +37,3 @@ npm install
 npm run dev
 ```
 Open http://localhost:5173
-
-## Background
-This project extends my work at Google Maps, where I ported a server-side R-CNN road 
-sign detection pipeline to TensorFlow.js for a mobile web feature. This demo applies 
-the same client-side inference approach and adds real-time model benchmarking — 
-directly visualizing the latency-accuracy tradeoffs I evaluated during that internship.
